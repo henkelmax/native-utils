@@ -9,7 +9,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class LibraryLoader {
+class LibraryLoader {
 
     private static final String OS_NAME = System.getProperty("os.name").toLowerCase();
     private static final String OS_ARCH = System.getProperty("os.arch").toLowerCase();
