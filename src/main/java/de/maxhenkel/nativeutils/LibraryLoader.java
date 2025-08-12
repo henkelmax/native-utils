@@ -71,7 +71,7 @@ class LibraryLoader {
     }
 
     private static String getLibraryName(String name) throws UnknownPlatformException {
-        return String.format("lib%s.%s", name, getLibraryExtension());
+        return String.format("%s.%s", name, getLibraryExtension());
     }
 
     private static String getNativeFolderName() throws UnknownPlatformException {
