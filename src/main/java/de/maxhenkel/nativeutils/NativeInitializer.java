@@ -29,7 +29,7 @@ public class NativeInitializer {
             return;
         }
         try {
-            LibraryLoader.load("opus4j");
+            LibraryLoader.load(libraryName);
             loaded = true;
         } catch (UnknownPlatformException | IOException e) {
             error = e;
