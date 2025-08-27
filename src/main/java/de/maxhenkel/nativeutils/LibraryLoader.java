@@ -89,21 +89,36 @@ class LibraryLoader {
     public static void load(String libraryName) throws UnknownPlatformException, IOException {
         String resourcePath = getResourcePath(libraryName);
 
-        @Nullable String md5 = null;
+        String md5;
         try (InputStream in = getResource(resourcePath)) {
             if (in == null) {
                 throw new UnknownPlatformException(String.format("Could not find %s natives for platform %s", libraryName, getNativeFolderName()));
             }
             md5 = checksum(in);
-        } catch (Exception ignored) {
         }
 
-        File tempDir = new File(getTempDir(), md5 == null ? libraryName : String.format("%s-%s", libraryName, md5));
+        File tempDir = new File(getTempDir(), String.format("%s-%s", libraryName, md5));
         tempDir.mkdirs();
 
         File tempFile = new File(tempDir, getLibraryName(libraryName));
 
-        if (!tempFile.exists()) {
+        boolean copyFile;
+        if (tempFile.exists()) {
+            String existingMd5;
+            try (InputStream in = Files.newInputStream(tempFile.toPath())) {
+                existingMd5 = checksum(in);
+            }
+            if (!existingMd5.equals(md5)) {
+                Files.deleteIfExists(tempFile.toPath());
+                copyFile = true;
+            } else {
+                copyFile = false;
+            }
+        } else {
+            copyFile = true;
+        }
+
+        if (copyFile) {
             try (InputStream in = getResource(resourcePath)) {
                 if (in == null) {
                     throw new UnknownPlatformException(String.format("Could not find %s natives for platform %s", libraryName, getNativeFolderName()));
@@ -124,23 +139,27 @@ class LibraryLoader {
         return LibraryLoader.class.getClassLoader().getResourceAsStream(path);
     }
 
-    private static String checksum(InputStream inputStream) throws NoSuchAlgorithmException, IOException {
-        byte[] buffer = new byte[1024];
-        MessageDigest digest = MessageDigest.getInstance("MD5");
-        int numRead;
-        do {
-            numRead = inputStream.read(buffer);
-            if (numRead > 0) {
-                digest.update(buffer, 0, numRead);
+    private static String checksum(InputStream inputStream) throws IOException {
+        try {
+            byte[] buffer = new byte[1024];
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            int numRead;
+            do {
+                numRead = inputStream.read(buffer);
+                if (numRead > 0) {
+                    digest.update(buffer, 0, numRead);
+                }
+            } while (numRead != -1);
+            inputStream.close();
+            byte[] bytes = digest.digest();
+            StringBuilder result = new StringBuilder();
+            for (byte value : bytes) {
+                result.append(String.format("%02x", value));
             }
-        } while (numRead != -1);
-        inputStream.close();
-        byte[] bytes = digest.digest();
-        StringBuilder result = new StringBuilder();
-        for (byte value : bytes) {
-            result.append(String.format("%02x", value));
+            return result.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
         }
-        return result.toString();
     }
 
 }
